@@ -1,0 +1,57 @@
+gamStat <- function(x) {
+  n<- sum(x) #Finding N
+  x<- x/sum(x) #Turning into joint distribution table
+  nr <- nrow(x) 
+  nc <- ncol(x) 
+  
+  c <- d <- temp <- 0 
+      
+      for (i in 1:(nr-1)){ 
+        for (j in 1:(nc-1)){ 
+          c<- c+2*(x[i,j]*sum(x[(i+1):nr, (j+1):nc])) 
+        }
+      }
+      for (i in 1:(nr-1)) {
+        for (j in 2:nc) {
+          d <- d+2*(x[i,j]*sum(x[(i+1):nr,1:(j-1)])) 
+        } 
+      } #My professor wrote everything uncommented above this line to get us started
+      
+      for (a in 1:nr){ #The next part needs to be together in one loop so I can multiply everything by x[a,b] so I'm starting a new one
+        for (b in 1:nc){ #I'm looping across all i's and j's unlike before because I need to account for all the different cases
+      
+          c4<- d4<- 0 #Initializing more variables
+          
+          if (a<nr & b<nc){ #We cant be larger than the largest column or row
+            c4<- (sum(x[(a+1):nr, (b+1):nc])) #We're finding the probability of a concordant pair for one individual cell one at a time
+          }
+          if (a>1 & b>1){ #Second term for concordant pairs. 
+            c4<- c4+(sum(x[1:(a-1), 1:(b-1)])) 
+          } 
+          
+          
+          if (a<nr & b>1){ #Can't be larger than the largest row or smaller than the smallest column
+            d4 <- sum(x[(a+1):nr,1:(b-1)]) #We're finding the probability of a discordant pair for each individual cell one at a time
+          }
+          if (a>1 & b<nc){ #Second term for discordant pairs
+            d4<- d4 + (sum(x[1:(a-1), (b+1):nc])) 
+          }
+          
+          
+          temp<- temp+(x[a,b]*(d*(c4)-c*(d4))**2) #Just plugging in the formula here. If a term didn't meet conditions to run, it should just be zero. It needs to be inside the innermost loop to make sure it includes all the values for a and b instead of just a
+    }
+  }
+  
+  gamma<- (c-d)/(c+d) #Gamma
+  
+  var<- (16/(c+d)**4)*temp #Plugging in more formulas
+  
+  se<- sqrt(var/n) #Finding standard error from variance and n
+  
+  ci<- gamma + c(-1,1)*qnorm(.975)*se #I found the 95% confidence interval too
+  
+  combined<- matrix(c(se, gamma, ci))
+  names(combined)<- c("SE", "GAMMA", "CI lower", "CI Upper") 
+  
+  return(c(combined))
+}
