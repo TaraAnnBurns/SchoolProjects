@@ -1,0 +1,121 @@
+#include <Servo.h>
+int minPos = 0; // opens to this angle
+int maxPos = 118; // closes to this angle
+int Pos = 0;
+int n = 0;
+int maxThresh = 0;
+int sensorValue = 0;
+int minThresh = 2000;
+int interval = 0;
+int c = 0;
+
+Servo fingerServo;
+int calibPin = 11; //calibration button pin
+int greenPin = 6; 
+int redPin = 5; 
+int bluePin = 3; 
+int manualPin = 12; // manual pin
+
+void setup(){ //This will run once, when the code starts
+  Serial.begin(9600); 
+  pinMode(calibPin, INPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+  pinMode(redPin, OUTPUT); 
+  pinMode(A5, INPUT_PULLUP);
+  fingerServo.attach(8); 
+}
+
+void loop(){ //Will open and close when sensor is triggered, calibrates when button is pressed
+  Open();  //Initialize hand to open position 
+  while (n == 0){
+    analogWrite(greenPin, 50); //250 //170
+    analogWrite(bluePin, 50);
+    if (digitalRead(calibPin) == HIGH){
+      Calib(); //Calibrates
+      delay(500);
+      analogWrite(bluePin, 0); 
+      analogWrite(greenPin, 50);
+      n = 1;
+    }
+    if (digitalRead(manualPin) == HIGH && (c==0)){
+      Close();
+      delay(200);
+      while(digitalRead(manualPin) == HIGH);
+      c = 1;
+    }
+    if (digitalRead(manualPin) == HIGH && (c==1)){
+      Open();
+      delay(200);
+      while(digitalRead(manualPin) == HIGH);
+      c = 0;
+    }
+  }
+  while (1){
+    while (n == 1){
+      if (readSensor() <= minThresh || digitalRead(manualPin) == HIGH){
+        Close(); //Waits for impulse
+        delay(200);
+        while(readSensor() <= maxThresh || digitalRead(manualPin) == HIGH);
+        delay(200);
+        n = 2;
+      }
+    }
+    while (n == 2){
+      if (readSensor() <= minThresh  || digitalRead(manualPin) == HIGH){
+        Open(); //Waits for impulse
+        delay(200);
+        while(readSensor() <= maxThresh  || digitalRead(manualPin) == HIGH);
+        delay(200);
+        n = 1;
+      }
+    }
+  }
+}
+
+void Close(){ //Functions to be called
+  fingerServo.write(0);
+    delay(100);
+}
+
+void Open(){
+  fingerServo.write(118);
+    delay(300);
+}
+
+
+void Calib(){
+  Close();
+  delay(500);
+  analogWrite(greenPin, 0);
+  unsigned long Time;
+  Time = millis();
+  while ( millis() < Time + 4000 ) {
+    sensorValue = readSensor();
+    if ( sensorValue < minThresh ) minThresh = sensorValue;
+    if (sensorValue > maxThresh ) maxThresh  = sensorValue;
+  };
+  interval = 1 + ((maxThresh - minThresh) / 10);
+  maxThresh = maxThresh - (interval + 1); //increase to make harder to trigger, decrease for tolerance
+  minThresh = minThresh + interval; //decrease to make harder to trigger, increase for tolerance
+  if (minThresh < 0) minThresh = 0;
+    Serial.println(maxThresh);
+    Serial.println(minThresh);
+  Open();
+  delay(150);
+}
+
+int readSensor() {
+  int i, sval;
+  analogRead(A5);
+  delay(50);
+  for (i = 0; i < 50; i++) {
+    analogRead(A5);
+    sval += analogRead(A5);
+    delay(5);
+  }
+  sval = sval/50;
+  return sval;
+}
+
+
