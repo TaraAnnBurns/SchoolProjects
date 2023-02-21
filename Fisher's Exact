@@ -1,0 +1,17 @@
+#Finding ha: !=1 and >1
+
+fisher <- function(x){ 
+  prob2 <- temp<-  0 #initializing
+  prob0<- 1-phyper((x[1,1]-1), sum(x[1,]), sum(x[2,]), sum(x[,1])) #ha theta >0
+  prob1 <- dhyper((x[1,1]), sum(x[1,]), sum(x[2,]), sum(x[,1])) #finding the probability of the observed value for comparison 
+  for (i in 0:sum(x[1,])){ #going across all i's from 0 to the observed number
+    temp<- dhyper(i, sum(x[1,]), sum(x[2,]), sum(x[,1])) #temporary value of each probability that is being compared
+    if (temp <= prob1){ 
+    prob2 <- prob2 + temp #adding it to the final value if it is less than or equal to
+    
+    list1<- c(prob2, prob0)
+    names(list1) <- c("!=1", ">1")
+    }
+  }
+    return(list1)
+}
